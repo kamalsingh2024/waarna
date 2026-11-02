@@ -3,8 +3,14 @@
 <head>
 <meta charset="utf8">
 <title>Waarna</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#4a0d1c">
+<link rel="manifest" href="manifest.webmanifest">
 <style>
-html,body{margin:0;height:100%;background:#4a0d1c;overflow:hidden;font-family:Arial,Helvetica,sans serif;color:#ffd98a}
+html,body{margin:0;height:100%;background:#4a0d1c;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:#ffd98a}
 canvas{position:fixed;left:0;top:0;width:100%;height:100%;display:block;z-index:1}
 #vid{position:fixed;left:0;top:0;width:100%;height:100%;z-index:0;display:none}
 #bar{position:fixed;left:0;right:0;top:0;padding:8px 52px 8px 8px;display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;z-index:5}
@@ -14,15 +20,9 @@ button,select,label.b{padding:9px 12px;font-size:14px;border:0;border-radius:8px
 #err{position:fixed;bottom:0;left:0;right:0;background:#900;color:#fff;font-size:14px;padding:6px;z-index:9;display:none}
 #file{display:none}
 </style>
-<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="theme-color" content="#4a0d1c">
-<link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
-<video id="vid" autoplay muted></video>
+<video id="vid" autoplay muted playsinline></video>
 <canvas id="c"></canvas>
 <button id="menu">Menu</button>
 <div id="bar">
@@ -69,11 +69,12 @@ GBP:{sym:'\u00A3',face:'\u00A350',val:50,bg:'#c0392b',edge:'#ffd0c9',ink:'#fff0e
 CAD:{sym:'C$',face:'$100',val:100,bg:'#9a6b3a',edge:'#f0d9b5',ink:'#fff3e0'},
 INR:{sym:'\u20B9',face:'\u20B92000',val:2000,bg:'#b0407a',edge:'#f3c6dc',ink:'#fff0f7'}
 };
-/* Default crop and trim for the preloaded photos in the notes folder.
-Options for crop: full, top, bottom, left, right. Trim is 0 to 0.1 */
+/* Default crop and trim for the photos in the notes folder.
+Crop options: full, top, bottom, left, right. Trim: 0 to 0.1 */
 var DEFCROP={AUD:'full',USD:'full',GBP:'full',CAD:'full',INR:'full'};
 var DEFTRIM={AUD:0,USD:0,GBP:0,CAD:0,INR:0};
 var cur='AUD',UP=Math.cos(Math.PI);
+var FILL=0.96;
 var c=document.getElementById('c'),x=c.getContext('2d');
 var pc=document.createElement('canvas'),pileN=0;
 c.style.touchAction='none';
@@ -86,7 +87,7 @@ var de=document.documentElement;
 if(!(de.requestFullscreen||de.webkitRequestFullscreen))document.getElementById('f').style.display='none';
 
 var vid=document.getElementById('vid');
-vid.setAttribute('playsinline','');vid.muted=true;vid.style.objectFit='cover';
+vid.muted=true;vid.style.objectFit='cover';
 var camOn=false,facing='environment',stream=null,ms=1;
 function stopCam(){if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}}
 function startCam(){
@@ -131,21 +132,21 @@ if(mode==='bottom')r=[0,h/2,w,h/2];
 if(mode==='left')r=[0,0,w/2,h];
 if(mode==='right')r=[w/2,0,w/2,h];
 var dx=r[2]*t,dy=r[3]*t;
-return [r[0]+dx,r[1]+dy,r[2]+UP*2*dx,r[3]+UP*2*dy];
+return [r[0]+dx,r[1]+dy,r[2]-2*dx,r[3]-2*dy];
 }
 
 var total=0,flying=[],rain=[],held=null,drag=null,hist=[],tossed=false;
 var tot=document.getElementById('tot');
 function upd(){tot.textContent='Total: '+CUR[cur].sym+total.toLocaleString()}
-function home(){return {x:c.width/2,y:c.height*(camOn?0.76:0.62)}}
+function home(){return {x:c.width/2,y:c.height*(camOn?0.76:0.5)}}
 function fresh(){var h=home();held={x:h.x,y:h.y,r:0,s:0.3}}
 fresh();
 
 function rr(px,py,w,h,r){
 x.beginPath();
-x.moveTo(px+r,py);x.lineTo(px+w+UP*r,py);x.quadraticCurveTo(px+w,py,px+w,py+r);
-x.lineTo(px+w,py+h+UP*r);x.quadraticCurveTo(px+w,py+h,px+w+UP*r,py+h);
-x.lineTo(px+r,py+h);x.quadraticCurveTo(px,py+h,px,py+h+UP*r);
+x.moveTo(px+r,py);x.lineTo(px+w-r,py);x.quadraticCurveTo(px+w,py,px+w,py+r);
+x.lineTo(px+w,py+h-r);x.quadraticCurveTo(px+w,py+h,px+w-r,py+h);
+x.lineTo(px+r,py+h);x.quadraticCurveTo(px,py+h,px,py+h-r);
 x.lineTo(px,py+r);x.quadraticCurveTo(px,py,px+r,py);
 x.closePath();
 }
@@ -154,14 +155,14 @@ var q=CUR[key],im=imgs[key],sr=null,ratio=0.433;
 if(im){sr=srcRect(im,crops[key]||'full',trims[key]||0);ratio=sr[3]/sr[2]}
 var turn=(c.height>c.width)&&ratio<1;
 var W,H;
-if(turn){W=Math.min(c.height*0.5,c.width*0.9/ratio);H=W*ratio}
-else{W=Math.min(c.width*0.85,c.height*0.5/ratio);H=W*ratio}
+if(turn){W=Math.min(c.height*FILL,c.width*FILL/ratio);H=W*ratio}
+else{W=Math.min(c.width*FILL,c.height*FILL/ratio);H=W*ratio}
 var flex=0.78+0.22*Math.abs(Math.cos(ph));
 var sheen=0.12+0.3*Math.abs(Math.sin(ph));
 x.save();x.translate(px,py);x.rotate(r);x.scale(s,s*flex);
 if(turn)x.rotate(Math.PI/2);
 x.shadowColor='rgba(0,0,0,0.5)';x.shadowBlur=14+lift*34;x.shadowOffsetY=6+lift*34;
-var hx=W*UP/2,hy=H*UP/2,cr=Math.max(5,W*0.012);
+var hx=-W/2,hy=-H/2,cr=Math.max(5,W*0.012);
 if(im){
 rr(hx,hy,W,H,cr);x.fillStyle='#f4f4ee';x.fill();
 x.shadowColor='transparent';
@@ -177,7 +178,7 @@ x.fillText(q.face,0,0);
 var g=x.createLinearGradient(hx,hy,W/2,H/2);
 g.addColorStop(0,'rgba(255,255,255,'+sheen+')');
 g.addColorStop(0.45,'rgba(255,255,255,0)');
-g.addColorStop(1,'rgba(0,0,0,'+(0.1+0.12*(1+UP*flex))+')');
+g.addColorStop(1,'rgba(0,0,0,'+(0.1+0.12*(1-flex))+')');
 x.fillStyle=g;x.fillRect(hx,hy,W,H);
 var b=x.createLinearGradient(hx,0,W/2,0);
 b.addColorStop(0,'rgba(0,0,0,0.12)');b.addColorStop(0.15,'rgba(0,0,0,0)');
@@ -188,24 +189,24 @@ x.strokeStyle='rgba(255,255,255,0.55)';x.lineWidth=1.5;rr(hx,hy,W,H,cr);x.stroke
 x.restore();
 }
 
-function pos(e){var b=c.getBoundingClientRect();return {x:e.clientX+UP*b.left,y:e.clientY+UP*b.top}}
+function pos(e){var b=c.getBoundingClientRect();return {x:e.clientX-b.left,y:e.clientY-b.top}}
 c.addEventListener('pointerdown',function(e){
-var p=pos(e);drag={ox:held.x+UP*p.x,oy:held.y+UP*p.y};hist=[{x:p.x,y:p.y,t:Date.now()}];
+var p=pos(e);drag={ox:held.x-p.x,oy:held.y-p.y};hist=[{x:p.x,y:p.y,t:Date.now()}];
 try{c.setPointerCapture(e.pointerId)}catch(z){}
 });
 c.addEventListener('pointermove',function(e){
 if(!drag)return;
 var p=pos(e);held.x=p.x+drag.ox;held.y=p.y+drag.oy;
-var h=home();held.r=(held.x+UP*h.x)*0.0006;
+var h=home();held.r=(held.x-h.x)*0.0006;
 hist.push({x:p.x,y:p.y,t:Date.now()});if(hist.length>8)hist.shift();
 });
 function release(){
 if(!drag)return;drag=null;
 var n=hist.length;if(n<2){return}
-var a=hist[0],b=hist[n+UP*1],now=Date.now();
-for(var i=0;i<n;i++){if(now+UP*hist[i].t<100){a=hist[i];break}}
-var dt=Math.max(b.t+UP*a.t,1);
-var vx=(b.x+UP*a.x)/dt*16,vy=(b.y+UP*a.y)/dt*16;
+var a=hist[0],b=hist[n-1],now=Date.now();
+for(var i=0;i<n;i++){if(now-hist[i].t<100){a=hist[i];break}}
+var dt=Math.max(b.t-a.t,1);
+var vx=(b.x-a.x)/dt*16,vy=(b.y-a.y)/dt*16;
 if(Math.sqrt(vx*vx+vy*vy)>7)toss(vx,vy);
 }
 c.addEventListener('pointerup',release);
@@ -217,18 +218,18 @@ flying.push({x:held.x,y:held.y,vx:vx,vy:vy,r:held.r,vr:vx*0.004,s:held.s*ms,key:
 total+=CUR[cur].val;upd();tossed=true;fresh();
 }
 
-var RS=0.3;
+var RS=0.16;
 function launch(){
 var k=K(),g=0.35*k,tgt=c.height*(0.4+Math.random()*0.45);
-rain.push({x:c.width*(0.08+Math.random()*0.84),y:c.height+60*k,vx:(Math.random()+UP*Math.random())*3*k,vy:UP*Math.sqrt(2*g*tgt),
-r:Math.random()*6.28,vr:(Math.random()+UP*Math.random())*0.12,ph:Math.random()*6,vp:0.15+Math.random()*0.1,key:cur,g:g});
+rain.push({x:c.width*(0.08+Math.random()*0.84),y:c.height+60*k,vx:(Math.random()-Math.random())*3*k,vy:-Math.sqrt(2*g*tgt),
+r:Math.random()*6.28,vr:(Math.random()-Math.random())*0.12,ph:Math.random()*6,vp:0.15+Math.random()*0.1,key:cur,g:g});
 total+=CUR[cur].val;tossed=true;upd();
 }
 function landNote(n){
 var k=K(),lvl=Math.min(pileN*0.35*k,c.height*0.22);
-var fy=c.height+UP*(18*k)+UP*lvl*(0.4+Math.random()*0.6);
+var fy=c.height-(18*k)-lvl*(0.4+Math.random()*0.6);
 var sx=x;x=pc.getContext('2d');
-drawNote(n.x,fy,(Math.random()+UP*Math.random())*0.9,RS,n.key,0.3,0.1);
+drawNote(n.x,fy,(Math.random()-Math.random())*0.9,RS,n.key,0.3,0.1);
 x=sx;pileN+=1;
 }
 
@@ -238,7 +239,7 @@ var k=K(),h=home();
 if(!tossed){
 x.font='bold '+(20*k)+'px Arial';x.textAlign='center';x.textBaseline='middle';x.fillStyle='#ffd98a';
 x.shadowColor='#000';x.shadowBlur=6;
-x.fillText(camOn?'Point at someone and swipe up':'Swipe the note up, or tap Auto toss',h.x,c.height*0.2);
+x.fillText(camOn?'Point at someone and swipe up':'Swipe the note up, or tap Auto toss',h.x,c.height*0.92);
 x.shadowBlur=0;x.shadowColor='transparent';
 }
 x.drawImage(pc,0,0);
@@ -246,7 +247,7 @@ var keep=[];
 for(var j=0;j<rain.length;j++){
 var n=rain[j];
 n.vy+=n.g;n.x+=n.vx;n.y+=n.vy;n.r+=n.vr;n.ph+=n.vp;
-if(n.vy>0&&n.y>c.height+UP*(18*k)+UP*Math.min(pileN*0.35*k,c.height*0.22)*0.7){landNote(n)}
+if(n.vy>0&&n.y>c.height-(18*k)-Math.min(pileN*0.35*k,c.height*0.22)*0.7){landNote(n)}
 else{drawNote(n.x,n.y,n.r,RS,n.key,n.ph,0.15);keep.push(n)}
 }
 rain=keep;
@@ -258,11 +259,11 @@ drawNote(f.x,f.y,f.r,f.s,f.key,f.ph,1);
 x.globalAlpha=1;
 }
 flying=flying.filter(function(f){return f.s>f.min&&f.y<c.height+400});
-if(!drag){held.x+=(h.x+UP*held.x)*0.18;held.y+=(h.y+UP*held.y)*0.18;held.r+=(0+UP*held.r)*0.18}
-held.s+=(1+UP*held.s)*0.15;
+if(!drag){held.x+=(h.x-held.x)*0.18;held.y+=(h.y-held.y)*0.18;held.r+=(0-held.r)*0.18}
+held.s+=(1-held.s)*0.15;
 var bob=drag?0:Math.sin(Date.now()/500)*6*k;
 var t=Date.now()/1400;
-drawNote(held.x,held.y+bob,held.r,held.s*ms,cur,drag?(held.x+UP*h.x)*0.004+0.4:Math.sin(t)*0.25,drag?0.8:0.25);
+drawNote(held.x,held.y+bob,held.r,held.s*ms,cur,drag?(held.x-h.x)*0.004+0.4:Math.sin(t)*0.25,drag?0.8:0.25);
 requestAnimationFrame(loop);
 }
 var autoT=null,autoBtn=document.getElementById('a');
