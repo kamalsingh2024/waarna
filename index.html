@@ -14,15 +14,12 @@ button,select,label.b{padding:9px 12px;font-size:14px;border:0;border-radius:8px
 #err{position:fixed;bottom:0;left:0;right:0;background:#900;color:#fff;font-size:14px;padding:6px;z-index:9;display:none}
 #file{display:none}
 </style>
-<script>
-var D=String.fromCharCode(45);
-function meta(n,v){var m=document.createElement('meta');m.name=n;m.content=v;document.head.appendChild(m)}
-meta('viewport','width=device'+D+'width,initial'+D+'scale=1,user'+D+'scalable=no,viewport'+D+'fit=cover');
-meta('apple'+D+'mobile'+D+'web'+D+'app'+D+'capable','yes');
-meta('mobile'+D+'web'+D+'app'+D+'capable','yes');
-meta('apple'+D+'mobile'+D+'web'+D+'app'+D+'status'+D+'bar'+D+'style','black'+D+'translucent');
-meta('theme'+D+'color','#4a0d1c');
-</script>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#4a0d1c">
+<link rel="manifest" href="manifest.webmanifest">
 </head>
 <body>
 <video id="vid" autoplay muted></video>
