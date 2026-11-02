@@ -137,7 +137,7 @@ return [r[0]+dx,r[1]+dy,r[2]-2*dx,r[3]-2*dy];
 
 var total=0,flying=[],rain=[],held=null,drag=null,hist=[],tossed=false;
 var tot=document.getElementById('tot');
-function upd(){tot.textContent='Total: '+CUR[cur].sym+total.toLocaleString()}
+function upd(){tot.textContent='Total: '+CUR[cur].sym+total.toLocaleString()+' (v4)'}
 function home(){return {x:c.width/2,y:c.height*(camOn?0.76:0.5)}}
 function fresh(){var h=home();held={x:h.x,y:h.y,r:0,s:0.3}}
 fresh();
