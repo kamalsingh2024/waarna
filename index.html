@@ -201,18 +201,30 @@ s2.connect(hp);hp.connect(hg);hg.connect(AC.destination);s2.start(t);s2.stop(t+0
 }
 }
 }
-function drumRoll(level){
-if(!soundOn||!AC||AC.state!=='running')return;
-if(dholBuf){
+var dholSrc=null,dholAgain=false,rollUntil=0;
+function playDhol(){
 var s0=AC.createBufferSource(),g0=AC.createGain();
 s0.buffer=dholBuf;g0.gain.value=0.9;
-s0.connect(g0);g0.connect(AC.destination);s0.start();
+s0.connect(g0);g0.connect(AC.destination);
+dholSrc=s0;
+s0.onended=function(){
+dholSrc=null;
+if(dholAgain){dholAgain=false;playDhol()}
+};
+s0.start();
 var hp0=[],dd=Math.min(dholBuf.duration,3),ee=0;
 while(ee<dd){hp0.push(30,70);ee+=0.1}
 hp0.push(200);
 haptic(hp0);
+}
+function drumRoll(level){
+if(!soundOn||!AC||AC.state!=='running')return;
+if(dholBuf){
+if(dholSrc){dholAgain=true;return}
+playDhol();
 return;
 }
+if(AC.currentTime<rollUntil)return;
 var t=AC.currentTime+0.02,len=1.2+level*0.2,el=0,i=0,pat=[];
 while(el<len){
 var p=el/len;
@@ -232,6 +244,7 @@ cg.gain.exponentialRampToValueAtTime(0.25,t+el+0.09);
 cg.gain.exponentialRampToValueAtTime(0.0001,t+el+0.8);
 s.connect(hp);hp.connect(cg);cg.connect(AC.destination);s.start(t+el+0.08);s.stop(t+el+0.85);
 }
+rollUntil=t+el+0.9;
 pat.push(200);
 haptic(pat);
 }
