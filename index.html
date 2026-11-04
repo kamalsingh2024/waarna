@@ -55,6 +55,7 @@ button,select,label.b{padding:9px 12px;font-size:14px;border:0;border-radius:8px
 </select>
 <button id="a">Auto toss</button>
 <button id="b">Burst</button>
+<button id="snd">Sound on</button>
 <button id="r">Reset</button>
 <button id="f">Full screen</button>
 </div>
@@ -74,7 +75,7 @@ Crop options: full, top, bottom, left, right. Trim: 0 to 0.1 */
 var DEFCROP={AUD:'full',USD:'full',GBP:'full',CAD:'full',INR:'full'};
 var DEFTRIM={AUD:0,USD:0,GBP:0,CAD:0,INR:0};
 var cur='AUD',UP=Math.cos(Math.PI);
-var FILL=0.96,RS=0.16,VERSION='v5';
+var FILL=0.96,RS=0.16,VERSION='v6';
 var c=document.getElementById('c'),x=c.getContext('2d');
 var pc=document.createElement('canvas'),pileN=0;
 c.style.touchAction='none';
@@ -87,6 +88,66 @@ var de=document.documentElement;
 if(!(de.requestFullscreen||de.webkitRequestFullscreen)){
 document.getElementById('f').textContent='How to go full screen';
 document.getElementById('f').addEventListener('click',function(){showErr('Tap Share, then Add to Home Screen, and open Waarna from the new icon.')});
+}
+
+/* Sound */
+var AC=null,lastSnd=0,noiseBuf=null,soundOn=fetchKey('sound')!=='off';
+function unlockAudio(){
+try{
+if(!AC){var A=window.AudioContext||window.webkitAudioContext;if(A)AC=new A();}
+if(AC&&AC.state==='suspended')AC.resume();
+}catch(e){}
+}
+document.addEventListener('pointerdown',unlockAudio);
+document.addEventListener('touchend',unlockAudio);
+function getNoise(){
+if(noiseBuf||!AC)return noiseBuf;
+var len=Math.floor(AC.sampleRate*0.4),b=AC.createBuffer(1,len,AC.sampleRate),d=b.getChannelData(0);
+for(var i=0;i<len;i++)d[i]=Math.random()*2-1;
+noiseBuf=b;return b;
+}
+function landSound(){
+if(!soundOn||!AC||AC.state!=='running')return;
+var now=AC.currentTime;
+if(now-lastSnd<0.04)return;
+lastSnd=now;
+var nb=getNoise();if(!nb)return;
+var src=AC.createBufferSource();src.buffer=nb;
+src.playbackRate.value=0.8+Math.random()*0.5;
+var f=AC.createBiquadFilter();f.type='bandpass';
+f.frequency.value=1800+Math.random()*2600;f.Q.value=0.8+Math.random()*1.5;
+var g=AC.createGain();
+var dur=0.08+Math.random()*0.1,vol=0.10+Math.random()*0.08;
+g.gain.setValueAtTime(0.0001,now);
+g.gain.exponentialRampToValueAtTime(vol,now+0.008);
+g.gain.exponentialRampToValueAtTime(0.0001,now+dur);
+src.connect(f);f.connect(g);g.connect(AC.destination);
+src.start(now,Math.random()*0.2);src.stop(now+dur+0.02);
+var o=AC.createOscillator(),og=AC.createGain();
+o.type='sine';
+o.frequency.setValueAtTime(140+Math.random()*80,now);
+o.frequency.exponentialRampToValueAtTime(60,now+0.07);
+og.gain.setValueAtTime(0.0001,now);
+og.gain.exponentialRampToValueAtTime(0.06+Math.random()*0.04,now+0.005);
+og.gain.exponentialRampToValueAtTime(0.0001,now+0.09);
+o.connect(og);og.connect(AC.destination);o.start(now);o.stop(now+0.1);
+}
+var sndBtn=document.getElementById('snd');
+sndBtn.textContent=soundOn?'Sound on':'Sound off';
+sndBtn.addEventListener('click',function(){
+soundOn=!soundOn;store('sound',soundOn?'on':'off');
+sndBtn.textContent=soundOn?'Sound on':'Sound off';
+});
+
+/* Haptics and LED flash (Android Chrome; iPhone needs the native app) */
+function haptic(ms){try{if(navigator.vibrate)navigator.vibrate(ms)}catch(e){}}
+function flash(){
+if(!stream)return;
+var t=stream.getVideoTracks()[0];
+if(!t||!t.getCapabilities||!t.getCapabilities().torch)return;
+t.applyConstraints({advanced:[{torch:true}]}).then(function(){
+setTimeout(function(){t.applyConstraints({advanced:[{torch:false}]}).catch(function(){})},80);
+}).catch(function(){});
 }
 
 var vid=document.getElementById('vid');
@@ -217,6 +278,7 @@ c.addEventListener('pointercancel',release);
 document.addEventListener('touchmove',function(e){e.preventDefault()},{passive:false});
 
 function toss(vx,vy){
+haptic(25);flash();
 flying.push({x:held.x,y:held.y,vx:vx,vy:vy,r:held.r,vr:vx*0.004,s:held.s*ms,key:cur,ph:0.3,vp:0.12+Math.random()*0.1,min:0.1*ms,pile:!camOn});
 total+=CUR[cur].val;upd();tossed=true;fresh();
 }
@@ -228,6 +290,7 @@ r:Math.random()*6.28,vr:(Math.random()-Math.random())*0.12,ph:Math.random()*6,vp
 total+=CUR[cur].val;tossed=true;upd();
 }
 function landNote(n){
+landSound();
 var k=K(),lvl=Math.min(pileN*0.35*k,c.height*0.22);
 var fy=c.height-(18*k)-lvl*(0.4+Math.random()*0.6);
 var lx=Math.max(c.width*0.06,Math.min(c.width*0.94,n.x));
